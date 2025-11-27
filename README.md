@@ -31,15 +31,18 @@ Map branch names to colors. The first matching rule is applied.
 ```json
 {
   "branchColor.rules": [
-   { "pattern": "^main$", "color": "#FF4141" },
-   { "pattern": "^dev(elop)?$", "color": "#2CB9FF" },
-   { "pattern": "^(feat|feature)/.*", "color": "#27FF76" }
+   { "pattern": "^main$", "color": "#C53436" },
+   { "pattern": "^dev(elop)?$", "color": "#2750CB" },
+   { "pattern": "^(feat|feature)/.*", "color": "#2E9125" },
+   { "pattern": ".*-(prod|production)$", "color": "#D97706" }
  ]
 }
 ```
 
 - `pattern`: Regular expression string for the branch name.
 - `color`: Hex color code to apply.
+
+A suffix rule is included by default to catch branches ending with `-prod` or `-production`.
 
 ### `branchColor.targetColorKeys`
 
