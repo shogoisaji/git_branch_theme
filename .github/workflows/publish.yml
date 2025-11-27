@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: read
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
     steps:
       - name: Checkout repository
@@ -28,10 +30,15 @@ jobs:
       - name: Build
         run: npm run compile
 
+      - name: Validate VSCE_PAT
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "VSCE_PAT is not set. Add it in repository or organization secrets."
+            exit 1
+          fi
+
       - name: Install vsce
         run: npm install -g @vscode/vsce
 
       - name: Publish extension
         run: vsce publish
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
