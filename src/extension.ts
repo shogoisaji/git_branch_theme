@@ -147,6 +147,7 @@ async function applyColor(
   const next = { ...current };
   const originals = getOriginalColors(context);
   let originalsChanged = false;
+  const getOriginalEntry = (key: string): OriginalColorEntry | undefined => originals[key];
 
   const rememberOriginal = (key: string) => {
     if (key in originals) {
@@ -160,6 +161,40 @@ async function applyColor(
     originalsChanged = true;
   };
 
+  const restoreOriginal = (key: string): boolean => {
+    const original = getOriginalEntry(key);
+    if (!original) {
+      return false;
+    }
+
+    if ('missing' in original && original.missing) {
+      if (key in next) {
+        delete next[key];
+        return true;
+      }
+      return false;
+    }
+
+    if (!('value' in original)) {
+      return false;
+    }
+
+    if (next[key] !== original.value) {
+      if (original.value === undefined) {
+        if (key in next) {
+          delete next[key];
+          return true;
+        }
+        return false;
+      }
+
+      next[key] = original.value;
+      return true;
+    }
+
+    return false;
+  };
+
   const ruleColors = new Set(rules.map((rule) => rule.color));
   let changed = false;
 
@@ -170,10 +205,18 @@ async function applyColor(
         next[key] = color;
         changed = true;
       }
-    } else if (key in next) {
-      rememberOriginal(key);
-      delete next[key];
-      changed = true;
+    } else {
+      if (restoreOriginal(key)) {
+        changed = true;
+      } else {
+        const currentValue = next[key];
+        if (typeof currentValue === 'string' && ruleColors.has(currentValue)) {
+          rememberOriginal(key);
+          // Restore to default when we only know the current value is one we set before.
+          delete next[key];
+          changed = true;
+        }
+      }
     }
   }
 
