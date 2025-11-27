@@ -3,6 +3,9 @@
 ## [Unreleased]
 - None.
 
+## [0.0.6]
+- Remember original user-defined colors before cleaning up rule-color matches when no rule applies, so user overrides are preserved.
+
 ## [0.0.5]
 - Preserve original `workbench.colorCustomizations` values and restore them when the extension deactivates.
 - Reapply branch colors after theme or color customization changes while keeping user-defined overrides intact.
