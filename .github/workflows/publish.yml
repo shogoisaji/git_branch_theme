@@ -44,7 +44,9 @@ jobs:
         run: vsce publish
 
       - name: Extract version
-        run: echo "VERSION=$(node -p \"require('./package.json').version\")" >> "$GITHUB_ENV"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
