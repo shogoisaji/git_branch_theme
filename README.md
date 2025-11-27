@@ -31,10 +31,10 @@ Map branch names to colors. The first matching rule is applied.
 ```json
 {
   "branchColor.rules": [
-    { "pattern": "^main$", "color": "#FF4141" },
-    { "pattern": "^dev(elop)?$", "color": "#2CB9FF" },
-    { "pattern": "^feat/.*", "color": "#27FF76" }
-  ]
+   { "pattern": "^main$", "color": "#FF4141" },
+   { "pattern": "^dev(elop)?$", "color": "#2CB9FF" },
+   { "pattern": "^(feat|feature)/.*", "color": "#27FF76" }
+ ]
 }
 ```
 

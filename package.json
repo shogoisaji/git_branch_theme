@@ -39,7 +39,7 @@
               "color": "#2750CB"
             },
             {
-              "pattern": "^feat/.*",
+              "pattern": "^(feat|feature)/.*",
               "color": "#2E9125"
             }
           ],
