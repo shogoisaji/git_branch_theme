@@ -41,6 +41,10 @@
             {
               "pattern": "^(feat|feature)/.*",
               "color": "#2E9125"
+            },
+            {
+              "pattern": ".*-(prod|production)$",
+              "color": "#D97706"
             }
           ],
           "items": {
