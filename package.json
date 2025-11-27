@@ -2,7 +2,7 @@
   "name": "git-branch-theme",
   "displayName": "Git Branch Theme",
   "description": "Switch VS Code colors based on the current Git branch to avoid mistakes on critical branches.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "shogoisaji",
   "icon": "images/icon.png",
   "repository": {
