@@ -3,6 +3,9 @@
 ## [Unreleased]
 - None.
 
+## [0.0.7]
+- Track applied branch colors and clean them up so disabling the extension reliably restores the original theme colors.
+
 ## [0.0.6]
 - Remember original user-defined colors before cleaning up rule-color matches when no rule applies, so user overrides are preserved.
 

@@ -13,10 +13,12 @@ type ColorTargets = {
 
 type OriginalColorEntry = { missing: true } | { value: unknown };
 type OriginalColorsState = Record<string, OriginalColorEntry>;
+type AppliedColorsState = Record<string, string>;
 
 const DEFAULT_COLOR_KEYS = ['titleBar.activeBackground', 'titleBar.inactiveBackground'] as const;
 const LAST_KEYS_STATE_KEY = 'branchColor.lastTargetColorKeys';
 const ORIGINAL_COLORS_STATE_KEY = 'branchColor.originalColorCustomizations';
+const APPLIED_COLORS_STATE_KEY = 'branchColor.appliedColors';
 
 let extensionContext: vscode.ExtensionContext | undefined;
 let isApplyingColors = false;
@@ -118,8 +120,20 @@ function getOriginalColors(context: vscode.ExtensionContext): OriginalColorsStat
   return context.workspaceState.get<OriginalColorsState>(ORIGINAL_COLORS_STATE_KEY, {});
 }
 
+function getAppliedColors(context: vscode.ExtensionContext): AppliedColorsState {
+  return context.workspaceState.get<AppliedColorsState>(APPLIED_COLORS_STATE_KEY, {});
+}
+
 function hasOriginalColors(context: vscode.ExtensionContext): boolean {
   return Object.keys(getOriginalColors(context)).length > 0;
+}
+
+function hasAppliedColors(context: vscode.ExtensionContext): boolean {
+  return Object.keys(getAppliedColors(context)).length > 0;
+}
+
+function hasStoredColorState(context: vscode.ExtensionContext): boolean {
+  return hasOriginalColors(context) || hasAppliedColors(context);
 }
 
 function findMatchingRule(branchName: string, rules: BranchRule[]): BranchRule | undefined {
@@ -146,7 +160,9 @@ async function applyColor(
   const current = config.get<Record<string, unknown>>('workbench.colorCustomizations') || {};
   const next = { ...current };
   const originals = getOriginalColors(context);
+  const appliedColors = getAppliedColors(context);
   let originalsChanged = false;
+  let appliedColorsChanged = false;
   const getOriginalEntry = (key: string): OriginalColorEntry | undefined => originals[key];
 
   const rememberOriginal = (key: string) => {
@@ -195,11 +211,26 @@ async function applyColor(
     return false;
   };
 
+  const setAppliedColor = (key: string, value: string) => {
+    if (appliedColors[key] !== value) {
+      appliedColors[key] = value;
+      appliedColorsChanged = true;
+    }
+  };
+
+  const removeAppliedColor = (key: string) => {
+    if (key in appliedColors) {
+      delete appliedColors[key];
+      appliedColorsChanged = true;
+    }
+  };
+
   const ruleColors = new Set(rules.map((rule) => rule.color));
   let changed = false;
 
   for (const key of targets.apply) {
     if (color) {
+      setAppliedColor(key, color);
       if (next[key] !== color) {
         rememberOriginal(key);
         next[key] = color;
@@ -210,13 +241,16 @@ async function applyColor(
         changed = true;
       } else {
         const currentValue = next[key];
-        if (typeof currentValue === 'string' && ruleColors.has(currentValue)) {
-          rememberOriginal(key);
-          // Restore to default when we only know the current value is one we set before.
+        const appliedColor = appliedColors[key];
+        if (
+          typeof currentValue === 'string' &&
+          (ruleColors.has(currentValue) || (appliedColor && currentValue === appliedColor))
+        ) {
           delete next[key];
           changed = true;
         }
       }
+      removeAppliedColor(key);
     }
   }
 
@@ -225,11 +259,16 @@ async function applyColor(
       continue;
     }
     const currentValue = next[key];
-    if (typeof currentValue === 'string' && (ruleColors.has(currentValue) || currentValue === color)) {
-      rememberOriginal(key);
-      delete next[key];
-      changed = true;
+    const appliedColor = appliedColors[key];
+    if (typeof currentValue === 'string') {
+      const isRuleColor = ruleColors.has(currentValue) || currentValue === color;
+      const isAppliedColor = appliedColor !== undefined && currentValue === appliedColor;
+      if (isRuleColor || isAppliedColor) {
+        delete next[key];
+        changed = true;
+      }
     }
+    removeAppliedColor(key);
   }
 
   if (changed) {
@@ -239,51 +278,84 @@ async function applyColor(
   if (originalsChanged) {
     await context.workspaceState.update(ORIGINAL_COLORS_STATE_KEY, originals);
   }
+
+  if (appliedColorsChanged) {
+    await context.workspaceState.update(APPLIED_COLORS_STATE_KEY, appliedColors);
+  }
 }
 
-async function clearBranchOverrides(rules: BranchRule[], targets: ColorTargets): Promise<void> {
+async function clearBranchOverrides(
+  rules: BranchRule[],
+  targets: ColorTargets,
+  context: vscode.ExtensionContext
+): Promise<void> {
   const config = vscode.workspace.getConfiguration();
   const current = config.get<Record<string, unknown>>('workbench.colorCustomizations') || {};
   const next = { ...current };
 
   const ruleColors = new Set(rules.map((rule) => rule.color));
   const keys = Array.from(new Set([...targets.apply, ...targets.cleanup]));
+  const appliedColors = getAppliedColors(context);
   let changed = false;
+  let appliedColorsChanged = false;
 
   for (const key of keys) {
     const value = next[key];
-    if (typeof value === 'string' && ruleColors.has(value)) {
+    const appliedColor = appliedColors[key];
+    if (typeof value === 'string' && (ruleColors.has(value) || (appliedColor && appliedColor === value))) {
       delete next[key];
       changed = true;
+    }
+    if (appliedColor !== undefined) {
+      delete appliedColors[key];
+      appliedColorsChanged = true;
     }
   }
 
   if (changed) {
     await config.update('workbench.colorCustomizations', next, vscode.ConfigurationTarget.Workspace);
   }
+
+  if (appliedColorsChanged) {
+    await context.workspaceState.update(APPLIED_COLORS_STATE_KEY, appliedColors);
+  }
 }
 
 async function rebaseAfterThemeChange(repository: Repository, context: vscode.ExtensionContext): Promise<void> {
-  if (!hasOriginalColors(context)) {
+  if (!hasStoredColorState(context)) {
     return;
   }
 
   const rules = getRules();
   const targets = getColorTargets(context);
 
-  await context.workspaceState.update(ORIGINAL_COLORS_STATE_KEY, {});
-
   await runWithApplying(async () => {
-    await clearBranchOverrides(rules, targets);
+    await clearBranchOverrides(rules, targets, context);
   });
+
+  await context.workspaceState.update(ORIGINAL_COLORS_STATE_KEY, {});
+  await context.workspaceState.update(APPLIED_COLORS_STATE_KEY, {});
 
   await updateColors(repository, context);
 }
 
 async function restoreOriginalColors(context: vscode.ExtensionContext): Promise<void> {
   const originals = getOriginalColors(context);
-  const entries = Object.entries(originals);
-  if (entries.length === 0) {
+  const appliedColors = getAppliedColors(context);
+  const keys = new Set([...Object.keys(originals), ...Object.keys(appliedColors)]);
+  if (keys.size === 0) {
+    const rules = getRules();
+    if (rules.length === 0) {
+      return;
+    }
+
+    const targets = getColorTargets(context);
+    await runWithApplying(async () => {
+      await clearBranchOverrides(rules, targets, context);
+    });
+
+    await context.workspaceState.update(ORIGINAL_COLORS_STATE_KEY, {});
+    await context.workspaceState.update(APPLIED_COLORS_STATE_KEY, {});
     return;
   }
 
@@ -292,24 +364,35 @@ async function restoreOriginalColors(context: vscode.ExtensionContext): Promise<
   const next = { ...current };
   let changed = false;
 
-  for (const [key, entry] of entries) {
-    if ('missing' in entry && entry.missing) {
-      if (key in next) {
-        delete next[key];
-        changed = true;
-      }
-    } else if ('value' in entry) {
-      if (next[key] !== entry.value) {
-        if (entry.value === undefined) {
-          if (key in next) {
-            delete next[key];
-            changed = true;
-          }
-        } else {
-          next[key] = entry.value;
+  for (const key of keys) {
+    const entry = originals[key];
+    const appliedColor = appliedColors[key];
+
+    if (entry) {
+      if ('missing' in entry && entry.missing) {
+        if (key in next) {
+          delete next[key];
           changed = true;
         }
+      } else if ('value' in entry) {
+        if (next[key] !== entry.value) {
+          if (entry.value === undefined) {
+            if (key in next) {
+              delete next[key];
+              changed = true;
+            }
+          } else {
+            next[key] = entry.value;
+            changed = true;
+          }
+        }
       }
+      continue;
+    }
+
+    if (appliedColor && typeof next[key] === 'string' && next[key] === appliedColor) {
+      delete next[key];
+      changed = true;
     }
   }
 
@@ -320,6 +403,7 @@ async function restoreOriginalColors(context: vscode.ExtensionContext): Promise<
   }
 
   await context.workspaceState.update(ORIGINAL_COLORS_STATE_KEY, {});
+  await context.workspaceState.update(APPLIED_COLORS_STATE_KEY, {});
 }
 
 export async function deactivate(): Promise<void> {
