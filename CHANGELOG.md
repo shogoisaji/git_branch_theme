@@ -3,6 +3,10 @@
 ## [Unreleased]
 - None.
 
+## [0.0.5]
+- Preserve original `workbench.colorCustomizations` values and restore them when the extension deactivates.
+- Reapply branch colors after theme or color customization changes while keeping user-defined overrides intact.
+
 ## [0.0.4]
 - Add a default suffix rule to match branches ending with `-prod` or `-production`.
 
