@@ -3,6 +3,10 @@
 ## [Unreleased]
 - None.
 
+## [0.0.8]
+- Add `Git Branch Theme: Reset Colors` command to clear extension-applied color customizations when uninstalling or disabling.
+- Reapply colors when `workbench.colorCustomizations` changes so branch themes stay in sync.
+
 ## [0.0.7]
 - Track applied branch colors and clean them up so disabling the extension reliably restores the original theme colors.
 
