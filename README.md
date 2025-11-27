@@ -61,6 +61,15 @@ Specify the `workbench.colorCustomizations` keys whose colors change per branch.
 - When omitted or empty, only `titleBar.activeBackground` and `titleBar.inactiveBackground` are changed.
 - If a key you remove still has an older branch color applied, it is cleared automatically when that color comes from a rule.
 
+## Commands
+
+### `Git Branch Theme: Reset Colors`
+
+Removes all color customizations applied by this extension. Use this command before uninstalling or disabling the extension to restore your workspace to its original state.
+
+1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Run `Git Branch Theme: Reset Colors`
+
 ## Limitations
 
 - Targets only the first repository detected in the workspace (`git.repositories[0]`).
