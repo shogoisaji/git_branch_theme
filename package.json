@@ -1,0 +1,87 @@
+{
+  "name": "git-branch-theme",
+  "displayName": "Git Branch Theme",
+  "description": "Switch VS Code colors based on the current Git branch to avoid mistakes on critical branches.",
+  "version": "0.0.1",
+  "publisher": "shogoisaji",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://example.com/your/repo.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "extensionDependencies": [
+    "vscode.git"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "Git Branch Theme",
+      "properties": {
+        "branchColor.rules": {
+          "type": "array",
+          "description": "List of rules mapping branch names to colors. The first matching rule's color is applied.",
+          "default": [
+            {
+              "pattern": "^main$",
+              "color": "#C53436"
+            },
+            {
+              "pattern": "^dev(elop)?$",
+              "color": "#2750CB"
+            },
+            {
+              "pattern": "^feat/.*",
+              "color": "#2E9125"
+            }
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression to match branch names."
+              },
+              "color": {
+                "type": "string",
+                "description": "Hex color code to apply when matched."
+              }
+            },
+            "required": [
+              "pattern",
+              "color"
+            ]
+          }
+        },
+        "branchColor.targetColorKeys": {
+          "type": "array",
+          "description": "workbench.colorCustomizations keys whose colors change per branch. When empty, the active/inactive title bar colors are updated.",
+          "default": [
+            "titleBar.activeBackground",
+            "titleBar.inactiveBackground"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
