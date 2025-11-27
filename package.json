@@ -7,7 +7,7 @@
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://example.com/your/repo.git"
+    "url": "https://github.com/shogoisaji/git_branch_theme.git"
   },
   "engines": {
     "vscode": "^1.85.0"
